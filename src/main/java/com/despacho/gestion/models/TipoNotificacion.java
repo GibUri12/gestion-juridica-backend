@@ -1,0 +1,9 @@
+package com.despacho.gestion.models;
+
+public enum TipoNotificacion {
+    AUDIENCIA_PROXIMA,
+    RESULTADO_AUDIENCIA_REGISTRADO,
+    EXPEDIENTE_ACTUALIZADO,
+    NUEVA_AUDIENCIA_ASIGNADA,
+    RECORDATORIO_EXPEDIENTE
+}

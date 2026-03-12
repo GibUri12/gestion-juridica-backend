@@ -1,0 +1,66 @@
+package com.despacho.gestion.controllers;
+
+import com.despacho.gestion.models.CatTribunal;
+import com.despacho.gestion.models.TipoTribunal;
+import com.despacho.gestion.repositories.CatTribunalRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/catalogos/tribunales")
+@CrossOrigin(origins = "*")
+public class CatTribunalController {
+
+    @Autowired
+    private CatTribunalRepository repository;
+
+    @GetMapping
+    public List<CatTribunal> getAll() {
+        return repository.findByActivoTrue();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CatTribunal> getById(@PathVariable Integer id) {
+        return repository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/por-tipo/{tipo}")
+    public List<CatTribunal> getByTipo(@PathVariable TipoTribunal tipo) {
+        return repository.findByTipoAndActivoTrue(tipo);
+    }
+
+    @PostMapping
+    public CatTribunal create(@RequestBody CatTribunal tribunal) {
+        return repository.save(tribunal);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CatTribunal> update(@PathVariable Integer id,
+                                            @RequestBody CatTribunal datos) {
+        return repository.findById(id)
+                .map(tribunal -> {
+                    tribunal.setClave(datos.getClave());
+                    tribunal.setNombreCompleto(datos.getNombreCompleto());
+                    tribunal.setTipo(datos.getTipo());
+                    tribunal.setActivo(datos.getActivo());
+                    return ResponseEntity.ok(repository.save(tribunal));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        return repository.findById(id)
+                .map(tribunal -> {
+                    tribunal.setActivo(false);
+                    repository.save(tribunal);
+                    return ResponseEntity.ok().<Void>build();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+}

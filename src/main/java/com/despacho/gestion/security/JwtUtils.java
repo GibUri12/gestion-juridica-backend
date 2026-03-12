@@ -9,7 +9,9 @@ import java.util.Date;
 
 @Component
 public class JwtUtils {
-    private final String KEY = "4zM6v8y/B?E(H+MbQeThWmYq3t6w9z$C&F)J@NcRfUjXn2r4u7x!A%D*G-KaPdSg"; // En producción usa variable de entorno
+
+    // ⚠ En producción mover a application.properties o variable de entorno
+    private final String KEY = "4zM6v8y/B?E(H+MbQeThWmYq3t6w9z$C&F)J@NcRfUjXn2r4u7x!A%D*G-KaPdSg";
 
     public String generateToken(String username) {
         return Jwts.builder()
@@ -27,5 +29,20 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    // ── Nuevo método: valida que el token no esté expirado ──
+    public boolean isTokenValid(String token) {
+        try {
+            Date expiration = Jwts.parserBuilder()
+                    .setSigningKey(Keys.hmacShaKeyFor(KEY.getBytes()))
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getExpiration();
+            return expiration.after(new Date());
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

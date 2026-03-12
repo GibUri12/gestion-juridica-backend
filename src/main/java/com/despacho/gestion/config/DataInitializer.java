@@ -17,35 +17,39 @@ public class DataInitializer {
             if (repository.count() == 0) {
                 BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-                // 1. Usuario Administrador Principal
                 Usuario admin = new Usuario();
+                admin.setNombreCompleto("Gibran Administrador");
                 admin.setUsername("Gibran");
-                admin.setPassword(encoder.encode("2312Conejo")); // Cambia esto después
-                admin.setRole(Role.ROLE_ADMIN);
+                admin.setEmail("gibran@despacho.com");
+                admin.setPassword(encoder.encode("2312Conejo"));
+                admin.setRol(Role.ADMINISTRADOR);
                 repository.save(admin);
 
-                // 2. Usuario IT Manager
                 Usuario itManager = new Usuario();
+                itManager.setNombreCompleto("IT Manager");
                 itManager.setUsername("it_manager");
+                itManager.setEmail("it@despacho.com");
                 itManager.setPassword(encoder.encode("it123"));
-                itManager.setRole(Role.ROLE_IT_MANAGER);
+                itManager.setRol(Role.IT_MANAGER);
                 repository.save(itManager);
 
-                // 3. Usuario Aguilar (Abogado)
                 Usuario aguilar = new Usuario();
+                aguilar.setNombreCompleto("Aguilar");
                 aguilar.setUsername("Aguilar");
-                aguilar.setPassword(encoder.encode("passwordAguilar")); // Pon la que gustes
-                aguilar.setRole(Role.ROLE_ADMIN);
+                aguilar.setEmail("aguilar@despacho.com");
+                aguilar.setPassword(encoder.encode("passwordAguilar"));
+                aguilar.setRol(Role.ADMINISTRADOR);
                 repository.save(aguilar);
 
-                // 4. Usuario Grimeldo (Abogado)
                 Usuario grimeldo = new Usuario();
+                grimeldo.setNombreCompleto("Grimeldo");
                 grimeldo.setUsername("Grimeldo");
-                grimeldo.setPassword(encoder.encode("passwordGrimeldo")); // Pon la que gustes
-                grimeldo.setRole(Role.ROLE_ADMIN);
+                grimeldo.setEmail("grimeldo@despacho.com");
+                grimeldo.setPassword(encoder.encode("passwordGrimeldo"));
+                grimeldo.setRol(Role.ADMINISTRADOR);
                 repository.save(grimeldo);
 
-                System.out.println("✅ Base de Datos inicializada: Admin, IT, Aguilar y Grimeldo creados.");
+                System.out.println("✅ Base de Datos inicializada correctamente.");
             }
         };
     }

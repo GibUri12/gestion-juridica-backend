@@ -15,14 +15,16 @@ public class CustomUserDetailsService implements UserDetailsService {
     private UsuarioRepository repository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) 
+            throws UsernameNotFoundException {
         Usuario usuario = repository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Usuario no encontrado: " + username));
 
         return User.builder()
             .username(usuario.getUsername())
             .password(usuario.getPassword())
-            .roles(usuario.getRole().name().replace("ROLE_", ""))
+            .authorities("ROLE_" + usuario.getRol().name())
             .build();
     }
 }
