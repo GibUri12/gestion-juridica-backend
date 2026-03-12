@@ -4,6 +4,7 @@ import com.despacho.gestion.models.*;
 import com.despacho.gestion.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ public class AudienciaController {
     @Autowired private UsuarioRepository usuarioRepository;
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public List<Audiencia> getAll(Authentication authentication) {
         Usuario usuario = usuarioRepository
                 .findByUsername(authentication.getName()).orElseThrow();
@@ -33,6 +35,7 @@ public class AudienciaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public ResponseEntity<Audiencia> getById(@PathVariable Long id) {
         return audienciaRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -40,17 +43,20 @@ public class AudienciaController {
     }
 
     @GetMapping("/fecha/{fecha}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public List<Audiencia> porFecha(@PathVariable LocalDate fecha) {
         return audienciaRepository.findByFecha(fecha);
     }
 
     @GetMapping("/rango")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public List<Audiencia> porRango(@RequestParam LocalDate inicio,
                                      @RequestParam LocalDate fin) {
         return audienciaRepository.findByFechaBetween(inicio, fin);
     }
 
     @GetMapping("/expediente/{expedienteId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public ResponseEntity<?> porExpediente(@PathVariable Long expedienteId) {
         return expedienteRepository.findById(expedienteId)
                 .map(exp -> ResponseEntity.ok(
@@ -59,6 +65,7 @@ public class AudienciaController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<?> create(@RequestBody Audiencia audiencia,
                                      Authentication authentication) {
         Usuario usuario = usuarioRepository
@@ -81,6 +88,7 @@ public class AudienciaController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<?> update(@PathVariable Long id,
                                      @RequestBody Audiencia datos,
                                      Authentication authentication) {
@@ -103,6 +111,7 @@ public class AudienciaController {
 
     // Asignar abogado a audiencia
     @PostMapping("/{id}/abogados/{usuarioId}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<?> asignarAbogado(@PathVariable Long id,
                                               @PathVariable Long usuarioId,
                                               @RequestParam(defaultValue = "true")
@@ -143,6 +152,7 @@ public class AudienciaController {
 
     // Registrar resultado de audiencia
     @PatchMapping("/{id}/resultado")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public ResponseEntity<?> registrarResultado(@PathVariable Long id,
                                             @RequestBody String resultado) {
         return audienciaRepository.findById(id)

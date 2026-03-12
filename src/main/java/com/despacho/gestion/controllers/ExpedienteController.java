@@ -4,6 +4,7 @@ import com.despacho.gestion.models.*;
 import com.despacho.gestion.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,7 @@ public class ExpedienteController {
     @Autowired private UsuarioRepository usuarioRepository;
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<Expediente> getAll(Authentication authentication) {
         Usuario usuario = usuarioRepository
                 .findByUsername(authentication.getName()).orElseThrow();
@@ -34,6 +36,7 @@ public class ExpedienteController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public ResponseEntity<Expediente> getById(@PathVariable Long id) {
         return expedienteRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -41,17 +44,20 @@ public class ExpedienteController {
     }
 
     @GetMapping("/buscar")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<Expediente> buscar(@RequestParam String numero) {
         return expedienteRepository
                 .findByNumeroExpedienteContainingIgnoreCase(numero);
     }
 
     @GetMapping("/estado/{estado}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public List<Expediente> porEstado(@PathVariable EstadoExpediente estado) {
         return expedienteRepository.findByEstado(estado);
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_IT_MANAGER')")
     public ResponseEntity<?> create(@RequestBody Expediente expediente,
                                      Authentication authentication) {
         Usuario usuario = usuarioRepository
@@ -70,6 +76,7 @@ public class ExpedienteController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<?> update(@PathVariable Long id,
                                      @RequestBody Expediente datos,
                                      Authentication authentication) {
@@ -110,8 +117,9 @@ public class ExpedienteController {
 
     // Asignar abogado a expediente
     @PostMapping("/{id}/abogados/{usuarioId}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<?> asignarAbogado(@PathVariable Long id,
-                                              @PathVariable Long usuarioId) {
+                                            @PathVariable Long usuarioId) {
         Expediente expediente = expedienteRepository.findById(id).orElse(null);
         Usuario abogado = usuarioRepository.findById(usuarioId).orElse(null);
 
@@ -140,6 +148,7 @@ public class ExpedienteController {
 
     // Remover abogado de expediente (soft delete)
     @DeleteMapping("/{id}/abogados/{usuarioId}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<?> removerAbogado(@PathVariable Long id,
                                             @PathVariable Long usuarioId) {
         ExpedienteAbogadoId pivotId = new ExpedienteAbogadoId();

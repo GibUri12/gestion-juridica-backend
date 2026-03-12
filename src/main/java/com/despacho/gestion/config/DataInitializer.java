@@ -33,6 +33,14 @@ public class DataInitializer {
                 itManager.setRol(Role.IT_MANAGER);
                 repository.save(itManager);
 
+                Usuario abogado = new Usuario();
+                abogado.setNombreCompleto("Hector Herrera");
+                abogado.setUsername("Hector");
+                abogado.setEmail("hector@despacho.com");
+                abogado.setPassword(encoder.encode("hec1234"));
+                abogado.setRol(Role.ABOGADO);
+                repository.save(abogado);
+
                 Usuario aguilar = new Usuario();
                 aguilar.setNombreCompleto("Aguilar");
                 aguilar.setUsername("Aguilar");

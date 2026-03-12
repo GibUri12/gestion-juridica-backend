@@ -5,6 +5,7 @@ import com.despacho.gestion.models.TipoTribunal;
 import com.despacho.gestion.repositories.CatTribunalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class CatTribunalController {
     private CatTribunalRepository repository;
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<CatTribunal> getAll() {
         return repository.findByActivoTrue();
     }
@@ -35,11 +37,13 @@ public class CatTribunalController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public CatTribunal create(@RequestBody CatTribunal tribunal) {
         return repository.save(tribunal);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<CatTribunal> update(@PathVariable Integer id,
                                             @RequestBody CatTribunal datos) {
         return repository.findById(id)
@@ -54,6 +58,7 @@ public class CatTribunalController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         return repository.findById(id)
                 .map(tribunal -> {

@@ -6,6 +6,7 @@ import com.despacho.gestion.repositories.NotificacionRepository;
 import com.despacho.gestion.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,7 @@ public class NotificacionController {
 
     // Todas las notificaciones del usuario autenticado
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public List<Notificacion> getMias(Authentication authentication) {
         Usuario usuario = usuarioRepository
                 .findByUsername(authentication.getName()).orElseThrow();
@@ -31,6 +33,7 @@ public class NotificacionController {
 
     // Solo las no leídas
     @GetMapping("/no-leidas")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public List<Notificacion> getNoLeidas(Authentication authentication) {
         Usuario usuario = usuarioRepository
                 .findByUsername(authentication.getName()).orElseThrow();
@@ -40,6 +43,7 @@ public class NotificacionController {
 
     // Marcar una notificación como leída
     @PatchMapping("/{id}/leer")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public ResponseEntity<?> marcarLeida(@PathVariable Long id,
                                         Authentication authentication) {
         return notificacionRepository.findById(id)
@@ -54,6 +58,7 @@ public class NotificacionController {
 
     // Marcar todas como leídas
     @PatchMapping("/leer-todas")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public ResponseEntity<?> marcarTodasLeidas(Authentication authentication) {
         Usuario usuario = usuarioRepository
                 .findByUsername(authentication.getName()).orElseThrow();

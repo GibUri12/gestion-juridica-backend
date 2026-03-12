@@ -6,6 +6,7 @@ import com.despacho.gestion.repositories.ClienteRepository;
 import com.despacho.gestion.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,11 +24,13 @@ public class ClienteController {
     private UsuarioRepository usuarioRepository;
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<Cliente> getAll() {
         return clienteRepository.findAll();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public ResponseEntity<Cliente> getById(@PathVariable Long id) {
         return clienteRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -35,11 +38,13 @@ public class ClienteController {
     }
 
     @GetMapping("/buscar")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<Cliente> buscar(@RequestParam String nombre) {
         return clienteRepository.findByNombreCompletoContainingIgnoreCase(nombre);
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_IT_MANAGER')")
     public ResponseEntity<?> create(@RequestBody Cliente cliente,
                                     Authentication authentication) {
         Usuario usuario = usuarioRepository
@@ -55,6 +60,7 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<Cliente> update(@PathVariable Long id,
                                         @RequestBody Cliente datos,
                                         Authentication authentication) {

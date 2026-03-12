@@ -4,6 +4,7 @@ import com.despacho.gestion.models.CatTipoAudiencia;
 import com.despacho.gestion.repositories.CatTipoAudienciaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,7 @@ public class CatTipoAudienciaController {
     private CatTipoAudienciaRepository repository;
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<CatTipoAudiencia> getAll() {
         return repository.findByActivoTrue();
     }
@@ -29,11 +31,13 @@ public class CatTipoAudienciaController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public CatTipoAudiencia create(@RequestBody CatTipoAudiencia tipo) {
         return repository.save(tipo);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<CatTipoAudiencia> update(@PathVariable Integer id,
                                                     @RequestBody CatTipoAudiencia datos) {
         return repository.findById(id)
@@ -47,6 +51,7 @@ public class CatTipoAudienciaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         return repository.findById(id)
                 .map(tipo -> {

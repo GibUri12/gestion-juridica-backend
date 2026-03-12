@@ -4,6 +4,7 @@ import com.despacho.gestion.models.CatJunta;
 import com.despacho.gestion.repositories.CatJuntaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,7 @@ public class CatJuntaController {
     private CatJuntaRepository repository;
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<CatJunta> getAll() {
         return repository.findByActivoTrue();
     }
@@ -29,11 +31,13 @@ public class CatJuntaController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public CatJunta create(@RequestBody CatJunta junta) {
         return repository.save(junta);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<CatJunta> update(@PathVariable Integer id,
                                             @RequestBody CatJunta datos) {
         return repository.findById(id)
@@ -47,6 +51,7 @@ public class CatJuntaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         return repository.findById(id)
                 .map(junta -> {
