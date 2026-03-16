@@ -8,5 +8,10 @@ import java.util.List;
 
 @Repository
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
-    List<Cliente> findByNombreCompletoContainingIgnoreCase(String nombre);
+
+    /** Solo activos, ordenados alfabéticamente */
+    List<Cliente> findByActivoTrueOrderByNombreCompleto();
+
+    /** Todos (activos e inactivos), ordenados alfabéticamente */
+    List<Cliente> findAllByOrderByNombreCompleto();
 }

@@ -24,11 +24,6 @@ public class Expediente {
     private String sufijoExpediente;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "audiencia_padre_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private Expediente expedienteAcumulado;
-
-    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "junta_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private CatJunta junta;

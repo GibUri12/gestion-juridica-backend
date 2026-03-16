@@ -23,33 +23,35 @@ public class AuthController {
     @Autowired
     private JwtUtils jwtUtils;
 
+    @Autowired
+    private com.despacho.gestion.repositories.UsuarioRepository usuarioRepository;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
             Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                    loginRequest.getUsername(), 
+                    loginRequest.getUsername(),
                     loginRequest.getPassword()
                 )
             );
-            
-            // Generamos el token
-            String token = jwtUtils.generateToken(auth.getName());
-            
-            // Extraemos el nombre de usuario
+
+            String token    = jwtUtils.generateToken(auth.getName());
             String username = auth.getName();
-            
-            // Extraemos el rol (Spring Security los guarda en getAuthorities)
-            // Tomamos el primero, ya que en tu caso cada usuario tiene un solo rol
-            String role = auth.getAuthorities().stream()
+            String role     = auth.getAuthorities().stream()
                     .findFirst()
                     .map(GrantedAuthority::getAuthority)
                     .orElse("ROLE_USER");
 
-            // Devolvemos la respuesta completa
-            return ResponseEntity.ok(new JwtResponse(token, username, role));
-            
+            // Obtener el id desde el repositorio usando el username autenticado
+            Long userId = usuarioRepository.findByUsername(username)
+                    .map(u -> u.getId())
+                    .orElse(null);
+
+            return ResponseEntity.ok(new JwtResponse(token, username, role, userId));
+
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(401).body("Usuario o contraseña incorrectos");
         }
     }
@@ -68,4 +70,5 @@ class JwtResponse {
     private String token; 
     private String username;
     private String role;
+    private Long   id;
 }

@@ -2,13 +2,15 @@ package com.despacho.gestion.models;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.time.Instant;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "clientes")
 @Data
+@NoArgsConstructor
 public class Cliente {
 
     @Id
@@ -27,12 +29,15 @@ public class Cliente {
     @Column(columnDefinition = "TEXT")
     private String notas;
 
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by", nullable = false)
-    @JsonIgnoreProperties({"password"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"password", "hibernateLazyInitializer"})
     private Usuario createdBy;
 }
