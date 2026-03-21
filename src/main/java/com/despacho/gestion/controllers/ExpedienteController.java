@@ -1,7 +1,10 @@
 package com.despacho.gestion.controllers;
 
+import com.despacho.gestion.dto.ExpedienteDTO;
 import com.despacho.gestion.models.*;
 import com.despacho.gestion.repositories.*;
+import com.despacho.gestion.services.ExpedienteService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +22,9 @@ public class ExpedienteController {
     @Autowired private ExpedienteRepository expedienteRepository;
     @Autowired private ExpedienteAbogadoRepository expedienteAbogadoRepository;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private ExpedienteService expedienteService;
+    @Autowired private EmpresaRepository empresaRepository;
+    @Autowired private ClienteRepository clienteRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
@@ -162,5 +168,73 @@ public class ExpedienteController {
                     return ResponseEntity.ok().build();
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Autocomplete para Empresas
+    @GetMapping("/autocomplete-empresa")
+    public List<Empresa> autocompleteEmpresa(@RequestParam String term) {
+        return empresaRepository.findByNombreCompletoContainingIgnoreCaseAndActivoTrue(term);
+    }
+
+    // Autocomplete para Clientes
+    @GetMapping("/autocomplete-cliente")
+    public List<Cliente> autocompleteCliente(@RequestParam String term) {
+        // Asumiendo que añadiste este método al ClienteRepository
+        return clienteRepository.findByNombreCompletoContainingIgnoreCaseAndActivoTrue(term);
+    }
+
+    // PASO 1: Crear expediente (Admin e IT Manager)
+    @PostMapping("/paso1")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_IT_MANAGER')")
+    public ResponseEntity<Expediente> crearPaso1(@RequestBody ExpedienteDTO dto, Authentication auth) {
+        Usuario creador = usuarioRepository.findByUsername(auth.getName()).orElseThrow();
+        return ResponseEntity.ok(expedienteService.crearPaso1(dto, creador));
+    }
+    // Nuevo Endpoint dedicado para el módulo legal
+    @PostMapping("/legal")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_IT_MANAGER', 'ROLE_ABOGADO')")
+    public ResponseEntity<Expediente> crearExpedienteCompleto(@RequestBody ExpedienteDTO dto, Authentication auth) {
+        Usuario creador = usuarioRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        
+        // Llamamos a un nuevo método en el service
+        Expediente nuevo = expedienteService.crearDesdeModuloLegal(dto, creador);
+        return ResponseEntity.ok(nuevo);
+    }
+
+    // PASO 2: Editar/Completar (Solo Admin)
+    @PutMapping("/{id}/completar")
+    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
+    public ResponseEntity<?> completarExpediente(@PathVariable Long id, @RequestBody Expediente datos) {
+        return expedienteRepository.findById(id).map(expediente -> {
+            // No editar si está FINALIZADO
+            if (expediente.getEstado() == EstadoExpediente.FINALIZADO) {
+                return ResponseEntity.badRequest().body("Expediente finalizado no editable");
+            }
+
+            // Actualizar campos del Paso 2
+            expediente.setLitis(datos.getLitis());
+            expediente.setAmparo(datos.getAmparo());
+            expediente.setAnotacion(datos.getAnotacion());
+            expediente.setProximaAudiencia(datos.getProximaAudiencia());
+            expediente.setTribunal(datos.getTribunal());
+            expediente.setEstado(datos.getEstado());
+            
+            // Validar fecha recordatorio (45 días) si se proporciona
+            if (datos.getFechaRecordatorio() != null) {
+                if (datos.getFechaRecordatorio().isBefore(LocalDate.now().plusDays(45))) {
+                    return ResponseEntity.badRequest().body("El recordatorio requiere mín. 45 días");
+                }
+                expediente.setFechaRecordatorio(datos.getFechaRecordatorio());
+            }
+
+            return ResponseEntity.ok(expedienteRepository.save(expediente));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+    // Endpoint para el Autocomplete de Empresas
+    @GetMapping("/buscar-empresa")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
+    public List<Empresa> buscarEmpresa(@RequestParam String term) {
+        return empresaRepository.findByNombreCompletoContainingIgnoreCaseAndActivoTrue(term);
     }
 }
