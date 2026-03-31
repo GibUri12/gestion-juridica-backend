@@ -25,6 +25,7 @@ public class ExpedienteController {
     @Autowired private ExpedienteService expedienteService;
     @Autowired private EmpresaRepository empresaRepository;
     @Autowired private ClienteRepository clienteRepository;
+    @Autowired private CatJuntaRepository juntaRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
@@ -205,22 +206,36 @@ public class ExpedienteController {
     // PASO 2: Editar/Completar (Solo Admin)
     @PutMapping("/{id}/completar")
     @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
-    public ResponseEntity<?> completarExpediente(@PathVariable Long id, @RequestBody Expediente datos) {
+    // 1. Cambiamos el Body a ExpedienteDTO para recibir 'nombreJunta'
+    public ResponseEntity<?> completarExpediente(@PathVariable Long id, @RequestBody ExpedienteDTO datos) {
         return expedienteRepository.findById(id).map(expediente -> {
-            // No editar si está FINALIZADO
+            
             if (expediente.getEstado() == EstadoExpediente.FINALIZADO) {
                 return ResponseEntity.badRequest().body("Expediente finalizado no editable");
             }
 
-            // Actualizar campos del Paso 2
+            // --- LÓGICA DE JUNTA (Igual que en el crear) ---
+            if (datos.getNombreJunta() != null && !datos.getNombreJunta().isBlank()) {
+                String nombreLimpio = datos.getNombreJunta().trim();
+                CatJunta junta = juntaRepository.findByNombreIgnoreCase(nombreLimpio)
+                    .orElseGet(() -> {
+                        CatJunta nueva = new CatJunta();
+                        nueva.setNombre(nombreLimpio);
+                        nueva.setNumero(0); 
+                        nueva.setActivo(true);
+                        return juntaRepository.save(nueva);
+                    });
+                expediente.setJunta(junta);
+            }
+
+            // Actualizar campos normales
             expediente.setLitis(datos.getLitis());
             expediente.setAmparo(datos.getAmparo());
             expediente.setAnotacion(datos.getAnotacion());
             expediente.setProximaAudiencia(datos.getProximaAudiencia());
-            expediente.setTribunal(datos.getTribunal());
-            expediente.setEstado(datos.getEstado());
             
-            // Validar fecha recordatorio (45 días) si se proporciona
+            // Si mandas el estado desde el DTO, asegúrate que el DTO tenga ese campo
+            // Si no, puedes dejarlo como ACTIVO por defecto
             if (datos.getFechaRecordatorio() != null) {
                 if (datos.getFechaRecordatorio().isBefore(LocalDate.now().plusDays(45))) {
                     return ResponseEntity.badRequest().body("El recordatorio requiere mín. 45 días");
@@ -231,10 +246,20 @@ public class ExpedienteController {
             return ResponseEntity.ok(expedienteRepository.save(expediente));
         }).orElse(ResponseEntity.notFound().build());
     }
+    
     // Endpoint para el Autocomplete de Empresas
     @GetMapping("/buscar-empresa")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO')")
     public List<Empresa> buscarEmpresa(@RequestParam String term) {
         return empresaRepository.findByNombreCompletoContainingIgnoreCaseAndActivoTrue(term);
+    }
+
+    // Dentro de ExpedienteController.java
+
+    @GetMapping("/catalogos/juntas")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_IT_MANAGER', 'ROLE_ABOGADO')")
+    public ResponseEntity<List<CatJunta>> buscarJuntas(@RequestParam String term) {
+        // Supongamos que tu repository tiene un método para buscar por nombre
+        return ResponseEntity.ok(juntaRepository.findByNombreContainingIgnoreCaseAndActivoTrue(term));
     }
 }

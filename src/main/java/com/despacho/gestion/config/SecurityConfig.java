@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -54,6 +55,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/test").permitAll()
                 .requestMatchers("/api/expedientes/**").permitAll()
                 .requestMatchers("/api/clientes/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/catalogos/tribunales/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_ABOGADO")
+                .requestMatchers(HttpMethod.GET, "/api/expedientes/catalogos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_ABOGADO")
                 .anyRequest().authenticated()
             )
             .userDetailsService(userDetailsService)

@@ -18,6 +18,12 @@ public class CatTribunalController {
     @Autowired
     private CatTribunalRepository repository;
 
+    @GetMapping("/catalogos/tribunales")
+    public ResponseEntity<List<CatTribunal>> buscarTribunales(@RequestParam String term) {
+        // Aquí puedes filtrar para que solo traiga Tribunales Federales/Colegiados
+        return ResponseEntity.ok(repository.findByNombreCompletoContainingIgnoreCase(term));
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
     public List<CatTribunal> getAll() {
@@ -25,7 +31,7 @@ public class CatTribunalController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CatTribunal> getById(@PathVariable Integer id) {
+    public ResponseEntity<CatTribunal> getById(@PathVariable long id) {
         return repository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -44,7 +50,7 @@ public class CatTribunalController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
-    public ResponseEntity<CatTribunal> update(@PathVariable Integer id,
+    public ResponseEntity<CatTribunal> update(@PathVariable long id,
                                             @RequestBody CatTribunal datos) {
         return repository.findById(id)
                 .map(tribunal -> {
@@ -59,7 +65,7 @@ public class CatTribunalController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+    public ResponseEntity<Void> delete(@PathVariable long id) {
         return repository.findById(id)
                 .map(tribunal -> {
                     tribunal.setActivo(false);

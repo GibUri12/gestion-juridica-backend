@@ -74,4 +74,15 @@ public class Expediente {
     @JoinColumn(name = "created_by", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password"})
     private Usuario createdBy;
+
+    @Column(name = "amparo_numero", length = 100)
+    private String amparoNumero;
+
+    @Column(name = "amparo_fecha_audiencia")
+    private LocalDate amparoFechaAudiencia;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "amparo_tribunal_id", columnDefinition = "BIGINT UNSIGNED") // <--- Cámbialo a BIGINT
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private CatTribunal amparoTribunal;
 }

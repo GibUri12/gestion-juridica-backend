@@ -4,20 +4,31 @@ import com.despacho.gestion.models.CatJunta;
 import lombok.Data;
 import java.time.LocalDate;
 
-@Data // Lombok generará los getters y setters automáticamente
+@Data 
 public class ExpedienteDTO {
-    // Campos que ya tenías (se mantienen para no romper el editar)
+    
+    // --- DATOS DEL JUICIO PRINCIPAL ---
     private String numeroExpediente;
     private String sufijoExpediente;
     private Long clienteId;
+    private String nombreCliente; 
     private String nombreEmpresa; 
-    private CatJunta junta;
+    
+    
+    // Lógica de Junta (Catalogo)
+    private CatJunta junta; // Para compatibilidad con Paso 1
+    private String nombreJunta; // Para el Autocomplete del Módulo Legal
 
-    // --- NUEVOS CAMPOS PARA EL MÓDULO LEGAL ---
-    private String nombreCliente; // Para recibir el nombre desde el front si es necesario
+    // --- DATOS DE SEGUIMIENTO (PRINCIPAL) ---
     private String litis;
-    private String amparo;
     private String anotacion;
     private LocalDate proximaAudiencia;
     private LocalDate fechaRecordatorio;
+
+    // --- SECCIÓN DE AMPARO (EL "ESPEJO") ---
+    private Boolean tieneAmparo;           // Controla el Switch en el Front
+    private Long amparoTribunalId;        // ID del Tribunal Colegiado (T.C.C.)
+    private String amparoNumero;          // El número D.T. del amparo
+    private LocalDate amparoFechaAudiencia; // Fecha específica del amparo
+    private String amparo;;           // Mapea al campo 'amparo' (TEXT) de la Entidad
 }
