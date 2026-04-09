@@ -1,6 +1,9 @@
 package com.despacho.gestion.dto;
 
 import com.despacho.gestion.models.CatJunta;
+import com.despacho.gestion.models.EstadoExpediente;
+import com.despacho.gestion.models.TipoTribunal;
+
 import lombok.Data;
 import java.time.LocalDate;
 
@@ -30,5 +33,10 @@ public class ExpedienteDTO {
     private Long amparoTribunalId;        // ID del Tribunal Colegiado (T.C.C.)
     private String amparoNumero;          // El número D.T. del amparo
     private LocalDate amparoFechaAudiencia; // Fecha específica del amparo
-    private String amparo;;           // Mapea al campo 'amparo' (TEXT) de la Entidad
+    private String amparo;
+    private String nombreTribunal;
+    private EstadoExpediente estado;           
+
+    private TipoTribunal amparoTribunalTipo;
+
 }

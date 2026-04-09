@@ -19,7 +19,7 @@ public class CatTribunal {
     private String nombreCompleto;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(length = 30)
     private TipoTribunal tipo;
 
     @Column(nullable = false)

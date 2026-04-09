@@ -46,38 +46,58 @@ public class ExpedienteService {
                 });
             expediente.setJunta(junta);
         }
-
+        
         // 3. Lógica de AMPARO (Estructura Espejo)
-        // Usamos el campo 'amparo' de la entidad para guardar las 'amparoNotas' del DTO
         if (Boolean.TRUE.equals(dto.getTieneAmparo())) {
             expediente.setAmparoNumero(dto.getAmparoNumero());
             expediente.setAmparoFechaAudiencia(dto.getAmparoFechaAudiencia());
-            expediente.setAmparo(dto.getAmparo()); // Notas o Estatus (ej. PONENCIA)
-            
+            expediente.setAmparo(dto.getAmparo()); 
+
+            // --- LÓGICA CORREGIDA PARA TRIBUNAL ---
             if (dto.getAmparoTribunalId() != null) {
-                // Buscamos el T.C.C. en la tabla de tribunales
                 tribunalRepository.findById(dto.getAmparoTribunalId())
                     .ifPresent(expediente::setAmparoTribunal);
+            } else if (dto.getNombreTribunal() != null && !dto.getNombreTribunal().isBlank()) {
+                String nombreTCC = dto.getNombreTribunal().trim();
+                
+                // Usamos findByNombreCompletoIgnoreCase (asegúrate que devuelva Optional o maneja la lista)
+                // Aquí lo manejamos como Optional según la lógica previa
+                CatTribunal tribunal = tribunalRepository.findByNombreCompletoIgnoreCase(nombreTCC)
+                    .orElseGet(() -> {
+                        CatTribunal nuevo = new CatTribunal();
+                        nuevo.setNombreCompleto(nombreTCC);
+                        // Clave única para evitar errores de Constraint Violation
+                        nuevo.setClave("AUTO-" + System.currentTimeMillis()); 
+                        nuevo.setActivo(true);
+                        
+                        // ASIGNACIÓN DEL TIPO (Crucial para evitar PropertyValueException)
+                        if (dto.getAmparoTribunalTipo() != null) {
+                            nuevo.setTipo(dto.getAmparoTribunalTipo());
+                        } else {
+                            // Fallback por seguridad
+                            nuevo.setTipo(TipoTribunal.TRIBUNAL_FEDERAL);
+                        }
+                        
+                        return tribunalRepository.save(nuevo);
+                    });
+                expediente.setAmparoTribunal(tribunal);
             }
-        } else {
-            // Si no tiene amparo, nos aseguramos de limpiar los campos por seguridad
-            expediente.setAmparoNumero(null);
-            expediente.setAmparoFechaAudiencia(null);
-            expediente.setAmparo(null);
-            expediente.setAmparoTribunal(null);
         }
-        
+
         // 4. Estado y Auditoría
-        expediente.setEstado(EstadoExpediente.ACTIVO); 
+        expediente.setEstado(dto.getEstado() != null ? dto.getEstado() : EstadoExpediente.ACTIVO);
         expediente.setCreatedBy(creador);
 
-        // 5. Vincular Cliente (ID viene del Autocomplete)
+        // 5. Vincular Cliente
+        if (dto.getClienteId() == null) {
+            throw new RuntimeException("El ID del cliente es obligatorio para crear el expediente");
+        }
         Cliente cliente = clienteRepository.findById(dto.getClienteId())
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + dto.getClienteId()));
         expediente.setCliente(cliente);
 
-        // 6. Lógica de Empresa (Crear si no existe por nombre)
-        if (dto.getNombreEmpresa() == null || dto.getNombreEmpresa().isEmpty()) {
+        // 6. Lógica de Empresa (Crear si no existe)
+        if (dto.getNombreEmpresa() == null || dto.getNombreEmpresa().isBlank()) {
             throw new RuntimeException("El nombre de la empresa es obligatorio");
         }
         
