@@ -11,8 +11,11 @@ import java.util.List;
 @Repository
 public interface CatTribunalRepository extends JpaRepository<CatTribunal, Long> {
     List<CatTribunal> findByActivoTrue();
+
     List<CatTribunal> findByTipoAndActivoTrue(TipoTribunal tipo);
+
     List<CatTribunal> findByNombreCompletoContainingIgnoreCase(String nombre);
+
     Optional<CatTribunal> findByNombreCompletoIgnoreCase(String nombreCompleto);
 
 

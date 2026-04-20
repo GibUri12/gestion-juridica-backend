@@ -2,7 +2,7 @@ package com.despacho.gestion.controllers;
 
 import com.despacho.gestion.models.CatTipoAudiencia;
 import com.despacho.gestion.repositories.CatTipoAudienciaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -10,55 +10,27 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/catalogos/tipos-audiencia")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/tipos-audiencia")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:4200")
 public class CatTipoAudienciaController {
 
-    @Autowired
-    private CatTipoAudienciaRepository repository;
+    private final CatTipoAudienciaRepository repository;
 
+    /** GET /api/tipos-audiencia?q=texto → autocomplete */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
-    public List<CatTipoAudiencia> getAll() {
-        return repository.findByActivoTrue();
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<CatTipoAudiencia> getById(@PathVariable Integer id) {
-        return repository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
-    public CatTipoAudiencia create(@RequestBody CatTipoAudiencia tipo) {
-        return repository.save(tipo);
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
-    public ResponseEntity<CatTipoAudiencia> update(@PathVariable Integer id,
-                                                    @RequestBody CatTipoAudiencia datos) {
-        return repository.findById(id)
-                .map(tipo -> {
-                    tipo.setAbreviatura(datos.getAbreviatura());
-                    tipo.setDescripcion(datos.getDescripcion());
-                    tipo.setActivo(datos.getActivo());
-                    return ResponseEntity.ok(repository.save(tipo));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        return repository.findById(id)
-                .map(tipo -> {
-                    tipo.setActivo(false);
-                    repository.save(tipo);
-                    return ResponseEntity.ok().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<List<CatTipoAudiencia>> buscar(
+            @RequestParam(required = false, defaultValue = "") String q) {
+        if (q.isBlank()) {
+            return ResponseEntity.ok(
+                repository.findByActivoTrueOrderByDescripcion()
+                    .stream().limit(20).toList()
+            );
+        }
+        return ResponseEntity.ok(
+            repository.findByDescripcionContainingIgnoreCaseAndActivoTrueOrderByDescripcion(q)
+                .stream().limit(10).toList()
+        );
     }
 }

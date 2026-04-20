@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/catalogos/tribunales")
@@ -18,22 +19,23 @@ public class CatTribunalController {
     @Autowired
     private CatTribunalRepository repository;
 
-    @GetMapping("/catalogos/tribunales")
-    public ResponseEntity<List<CatTribunal>> buscarTribunales(@RequestParam String term) {
-        // Aquí puedes filtrar para que solo traiga Tribunales Federales/Colegiados
-        return ResponseEntity.ok(repository.findByNombreCompletoContainingIgnoreCase(term));
-    }
-
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_ADMINISTRADOR', 'ROLE_ABOGADO', 'ROLE_IT_MANAGER')")
-    public List<CatTribunal> getAll() {
-        return repository.findByActivoTrue();
+    public List<CatTribunal> getAll(@RequestParam(required = false) String q) {
+        List<CatTribunal> todos = repository.findByActivoTrue();
+        if (q == null || q.isBlank()) {
+            return todos;
+        }
+        String filtro = q.toLowerCase();
+        return todos.stream()
+                .filter(t -> t.getClave().toLowerCase().contains(filtro)
+                        || t.getNombreCompleto().toLowerCase().contains(filtro))
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CatTribunal> getById(@PathVariable long id) {
-        return repository.findById(id)
-                .map(ResponseEntity::ok)
+        return repository.findById(id).map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -51,27 +53,23 @@ public class CatTribunalController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<CatTribunal> update(@PathVariable long id,
-                                            @RequestBody CatTribunal datos) {
-        return repository.findById(id)
-                .map(tribunal -> {
-                    tribunal.setClave(datos.getClave());
-                    tribunal.setNombreCompleto(datos.getNombreCompleto());
-                    tribunal.setTipo(datos.getTipo());
-                    tribunal.setActivo(datos.getActivo());
-                    return ResponseEntity.ok(repository.save(tribunal));
-                })
-                .orElse(ResponseEntity.notFound().build());
+            @RequestBody CatTribunal datos) {
+        return repository.findById(id).map(tribunal -> {
+            tribunal.setClave(datos.getClave());
+            tribunal.setNombreCompleto(datos.getNombreCompleto());
+            tribunal.setTipo(datos.getTipo());
+            tribunal.setActivo(datos.getActivo());
+            return ResponseEntity.ok(repository.save(tribunal));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        return repository.findById(id)
-                .map(tribunal -> {
-                    tribunal.setActivo(false);
-                    repository.save(tribunal);
-                    return ResponseEntity.ok().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+        return repository.findById(id).map(tribunal -> {
+            tribunal.setActivo(false);
+            repository.save(tribunal);
+            return ResponseEntity.ok().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 }
