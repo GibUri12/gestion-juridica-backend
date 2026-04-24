@@ -1,5 +1,6 @@
 package com.despacho.gestion.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -11,12 +12,13 @@ public class AudienciaAbogado {
     @EmbeddedId
     private AudienciaAbogadoId id;
 
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("audienciaId")
     @JoinColumn(name = "audiencia_id")
     private Audiencia audiencia;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) 
     @MapsId("usuarioId")
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;

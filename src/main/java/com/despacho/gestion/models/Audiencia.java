@@ -3,10 +3,11 @@ package com.despacho.gestion.models;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Entity
 @Table(name = "audiencias")
@@ -18,15 +19,12 @@ public class Audiencia {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "expediente_id", nullable = false)
     private Expediente expediente;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_audiencia_id", nullable = false)
     private CatTipoAudiencia tipoAudiencia;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tribunal_id", nullable = false)
     private CatTribunal tribunal;
 
     @Column(nullable = false)
@@ -39,7 +37,7 @@ public class Audiencia {
     private String resultado;
 
     @Column(name = "notas_tipo", columnDefinition = "TEXT")
-    private String notas_tipo;
+    private String notasTipo;
 
     @Column(name = "notas_agenda", columnDefinition = "TEXT")
     private String notasAgenda;
@@ -52,7 +50,7 @@ public class Audiencia {
     private EstadoAudiencia estado = EstadoAudiencia.PROGRAMADA;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "audiencia_padre_id")
+    @JsonIgnoreProperties({"abogados", "expediente", "audienciaPadre"})
     private Audiencia audienciaPadre;
 
     @CreationTimestamp
@@ -60,6 +58,12 @@ public class Audiencia {
     private Instant createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
+    @JoinColumn(name = "created_by", columnDefinition = "INT",
+            foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Usuario createdBy;
+
+
+    @OneToMany(mappedBy = "audiencia", fetch = FetchType.LAZY, cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private List<AudienciaAbogado> abogados;
 }

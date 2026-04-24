@@ -7,6 +7,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface CatTipoAudienciaRepository extends JpaRepository<CatTipoAudiencia, Integer> {
-    List<CatTipoAudiencia> findByActivoTrue();
+public interface CatTipoAudienciaRepository extends JpaRepository<CatTipoAudiencia, Long> {
+
+    List<CatTipoAudiencia> findByActivoTrueOrderByDescripcion();
+
+    List<CatTipoAudiencia> findByDescripcionContainingIgnoreCaseAndActivoTrueOrderByDescripcion(String descripcion);
 }

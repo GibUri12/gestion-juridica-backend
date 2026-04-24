@@ -49,6 +49,23 @@ public class DataInitializer {
                 grimeldo.setRol(Role.ADMINISTRADOR);
                 repository.save(grimeldo);
 
+                // --- ABOGADOS (Nuevos registros) ---
+                Usuario abogado1 = new Usuario();
+                abogado1.setNombreCompleto("Lic. Hector Herrera");
+                abogado1.setUsername("hector_h");
+                abogado1.setEmail("hector.h@despacho.com");
+                abogado1.setPassword(encoder.encode("abogado2026"));
+                abogado1.setRol(Role.ABOGADO); // <--- Asegúrate de que Role.ABOGADO exista en tu Enum
+                repository.save(abogado1);
+
+                Usuario abogado2 = new Usuario();
+                abogado2.setNombreCompleto("Lic. Axel Aguilar");
+                abogado2.setUsername("axel_a");
+                abogado2.setEmail("axel.a@despacho.com");
+                abogado2.setPassword(encoder.encode("abogado123"));
+                abogado2.setRol(Role.ABOGADO);
+                repository.save(abogado2);
+
                 System.out.println("✅ Base de Datos inicializada correctamente.");
             }
         };
