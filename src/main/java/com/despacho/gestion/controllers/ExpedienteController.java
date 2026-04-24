@@ -206,93 +206,10 @@ public class ExpedienteController {
     }
 
     @PutMapping("/{id}/completar")
-    @PreAuthorize("hasAuthority('ROLE_ADMINISTRADOR')")
-    public ResponseEntity<?> completarExpediente(@PathVariable Long id, @RequestBody ExpedienteDTO datos) {
-        return expedienteRepository.findById(id).map(expediente -> {
-            
-            // 1. Validación de Estado (Evitar edición accidental de finalizados)
-            if (expediente.getEstado() == EstadoExpediente.FINALIZADO && datos.getEstado() == null) {
-                return ResponseEntity.badRequest().body("El expediente está finalizado y no se puede editar.");
-            }
-
-            // 2. Lógica de JUNTA (Buscar o Crear)
-            if (datos.getNombreJunta() != null && !datos.getNombreJunta().isBlank()) {
-                String nombreLimpio = datos.getNombreJunta().trim();
-                CatJunta junta = juntaRepository.findByNombreIgnoreCase(nombreLimpio)
-                    .orElseGet(() -> {
-                        CatJunta nueva = new CatJunta();
-                        nueva.setNombre(nombreLimpio);
-                        nueva.setNumero(0); 
-                        nueva.setActivo(true);
-                        return juntaRepository.save(nueva);
-                    });
-                expediente.setJunta(junta);
-            }
-
-            // 3. Lógica de TRIBUNAL DE AMPARO (Solución al error de Nullability)
-            if (Boolean.TRUE.equals(datos.getTieneAmparo())) {
-                expediente.setAmparoNumero(datos.getAmparoNumero());
-                expediente.setAmparoFechaAudiencia(datos.getAmparoFechaAudiencia());
-                
-                if (datos.getAmparoTribunalId() != null) {
-                    // Si ya existe en el catálogo, solo lo vinculamos
-                    tribunalRepository.findById(datos.getAmparoTribunalId())
-                        .ifPresent(expediente::setAmparoTribunal);
-                } else if (datos.getNombreTribunal() != null && !datos.getNombreTribunal().isBlank()) {
-                    // Si es un nombre nuevo, buscamos por texto o CREAMOS
-                    String nombreTCC = datos.getNombreTribunal().trim();
-                    
-                    CatTribunal tcc = tribunalRepository.findByNombreCompletoIgnoreCase(nombreTCC)
-                        .orElseGet(() -> {
-                            CatTribunal nuevoT = new CatTribunal();
-                            nuevoT.setNombreCompleto(nombreTCC);
-                            nuevoT.setClave("AUTO-" + System.currentTimeMillis()); // Clave única temporal
-                            nuevoT.setActivo(true);
-                            
-                            // IMPORTANTE: Solución al error de Hibernate (CatTribunal.tipo)
-                            // Si el DTO trae el tipo lo usamos, si no, usamos TRIBUNAL_FEDERAL por defecto
-                            if (datos.getAmparoTribunalTipo() != null) {
-                                nuevoT.setTipo(datos.getAmparoTribunalTipo());
-                            } else {
-                                nuevoT.setTipo(TipoTribunal.TRIBUNAL_FEDERAL);
-                            }
-                            
-                            return tribunalRepository.save(nuevoT);
-                        });
-                    expediente.setAmparoTribunal(tcc);
-                }
-            } else {
-                // Si el switch "Tiene Amparo" está apagado, limpiamos los campos
-                expediente.setAmparoTribunal(null);
-                expediente.setAmparoNumero(null);
-                expediente.setAmparoFechaAudiencia(null);
-            }
-
-            // 4. Actualización del Estado (ACTIVO, EN_PROCESO, FINALIZADO)
-            if (datos.getEstado() != null) {
-                expediente.setEstado(datos.getEstado());
-            }
-
-            // 5. Actualización de campos de texto
-            expediente.setLitis(datos.getLitis());
-            expediente.setAmparo(datos.getAmparo()); // Notas/Estatus adicionales
-            expediente.setAnotacion(datos.getAnotacion());
-            expediente.setProximaAudiencia(datos.getProximaAudiencia());
-            
-            // 6. Validación lógica de fecha de recordatorio
-            if (datos.getFechaRecordatorio() != null) {
-                // Solo validamos si la fecha es distinta a la que ya tenía guardada
-                if (!datos.getFechaRecordatorio().equals(expediente.getFechaRecordatorio()) &&
-                    datos.getFechaRecordatorio().isBefore(LocalDate.now().plusDays(45))) {
-                    return ResponseEntity.badRequest().body("El recordatorio requiere un margen mínimo de 45 días.");
-                }
-                expediente.setFechaRecordatorio(datos.getFechaRecordatorio());
-            }
-
-            // Guardamos el objeto actualizado
-            return ResponseEntity.ok(expedienteRepository.save(expediente));
-            
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> actualizar(@PathVariable Long id, @RequestBody ExpedienteDTO dto, Authentication auth) {
+        Usuario editor = usuarioRepository.findByUsername(auth.getName()).orElseThrow();
+        // Llamada al método que acabamos de crear
+        return ResponseEntity.ok(expedienteService.completarOActualizar(id, dto, editor));
     }
     
     // Endpoint para el Autocomplete de Empresas

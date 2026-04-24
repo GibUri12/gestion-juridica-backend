@@ -5,6 +5,8 @@ import com.despacho.gestion.repositories.CatJuntaRepository;
 import com.despacho.gestion.repositories.ClienteRepository;
 import com.despacho.gestion.repositories.EmpresaRepository;
 import com.despacho.gestion.repositories.ExpedienteRepository;
+import com.despacho.gestion.repositories.MovimientoExpedienteRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ public class ExpedienteService {
     @Autowired private ClienteRepository clienteRepository;
     @Autowired private CatJuntaRepository juntaRepository;
     @Autowired private CatTribunalRepository tribunalRepository;
+    @Autowired private MovimientoExpedienteRepository movimientoRepository;
 
 
     @Transactional
@@ -60,31 +63,25 @@ public class ExpedienteService {
             } else if (dto.getNombreTribunal() != null && !dto.getNombreTribunal().isBlank()) {
                 String nombreTCC = dto.getNombreTribunal().trim();
                 
-                // Usamos findByNombreCompletoIgnoreCase (asegúrate que devuelva Optional o maneja la lista)
-                // Aquí lo manejamos como Optional según la lógica previa
                 CatTribunal tribunal = tribunalRepository.findByNombreCompletoIgnoreCase(nombreTCC)
                     .orElseGet(() -> {
                         CatTribunal nuevo = new CatTribunal();
                         nuevo.setNombreCompleto(nombreTCC);
-                        // Clave única para evitar errores de Constraint Violation
                         nuevo.setClave("AUTO-" + System.currentTimeMillis()); 
                         nuevo.setActivo(true);
                         
-                        // ASIGNACIÓN DEL TIPO (Crucial para evitar PropertyValueException)
                         if (dto.getAmparoTribunalTipo() != null) {
                             nuevo.setTipo(dto.getAmparoTribunalTipo());
                         } else {
-                            // Fallback por seguridad
                             nuevo.setTipo(TipoTribunal.TRIBUNAL_FEDERAL);
                         }
-                        
                         return tribunalRepository.save(nuevo);
                     });
                 expediente.setAmparoTribunal(tribunal);
             }
         }
 
-        // 4. Estado y Auditoría
+        // 4. Estado y Auditoría interna del objeto
         expediente.setEstado(dto.getEstado() != null ? dto.getEstado() : EstadoExpediente.ACTIVO);
         expediente.setCreatedBy(creador);
 
@@ -111,7 +108,17 @@ public class ExpedienteService {
                 });
         expediente.setEmpresa(empresa);
 
-        return expedienteRepository.save(expediente);
+        // 7. Guardar el expediente primero para obtener el ID
+        Expediente expedienteGuardado = expedienteRepository.save(expediente);
+
+        // 8. REGISTRO INICIAL EN EL HISTORIAL (Movimientos)
+        MovimientoExpediente movimientoInicial = new MovimientoExpediente();
+        movimientoInicial.setExpediente(expedienteGuardado);
+        movimientoInicial.setUsuario(creador);
+        movimientoInicial.setDescripcion("Creación del expediente. Registro inicial de datos en el Módulo Legal.");
+        movimientoRepository.save(movimientoInicial);
+
+        return expedienteGuardado;
     }
 
     @Transactional
@@ -140,5 +147,103 @@ public class ExpedienteService {
         expediente.setCreatedBy(creador);
 
         return expedienteRepository.save(expediente);
+    }
+
+    @Transactional
+    public Expediente completarOActualizar(Long id, ExpedienteDTO dto, Usuario editor) {
+        Expediente actual = expedienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Expediente no encontrado"));
+
+        StringBuilder cambios = new StringBuilder("Detalle de modificaciones:\n");
+        boolean huboCambios = false;
+
+        // 1. Estado
+        if (dto.getEstado() != null && !actual.getEstado().equals(dto.getEstado())) {
+            cambios.append(String.format("• Estado: [%s] → [%s]\n", actual.getEstado(), dto.getEstado()));
+            actual.setEstado(dto.getEstado());
+            huboCambios = true;
+        }
+
+        // 2. Litis
+        if (debioCambiarTexto(actual.getLitis(), dto.getLitis())) {
+            cambios.append(String.format("• Litis: [%s] → [%s]\n", formatearNulo(actual.getLitis()), dto.getLitis()));
+            actual.setLitis(dto.getLitis());
+            huboCambios = true;
+        }
+
+        // 3. Anotaciones Generales
+        if (debioCambiarTexto(actual.getAnotacion(), dto.getAnotacion())) {
+           cambios.append(String.format("• Anotaciones: [%s] → [%s]\n", formatearNulo(actual.getAnotacion()), dto.getAnotacion()));
+            actual.setAnotacion(dto.getAnotacion());
+            huboCambios = true;
+        }
+
+        // 4. No. de Amparo
+        if (debioCambiarTexto(actual.getAmparoNumero(), dto.getAmparoNumero())) {
+            cambios.append(String.format("• No. Amparo: [%s] → [%s]\n", formatearNulo(actual.getAmparoNumero()), dto.getAmparoNumero()));
+            actual.setAmparoNumero(dto.getAmparoNumero());
+            huboCambios = true;
+        }
+
+        // 5. Fecha Audiencia Constitucional (Amparo)
+        String fechaAmpAnt = actual.getAmparoFechaAudiencia() != null ? actual.getAmparoFechaAudiencia().toString() : "Sin fecha";
+        String fechaAmpNva = dto.getAmparoFechaAudiencia() != null ? dto.getAmparoFechaAudiencia().toString() : "Sin fecha";
+        if (!fechaAmpAnt.equals(fechaAmpNva)) {
+            cambios.append(String.format("• F. Audiencia Amparo: [%s] → [%s]\n", fechaAmpAnt, fechaAmpNva));
+            actual.setAmparoFechaAudiencia(dto.getAmparoFechaAudiencia());
+            huboCambios = true;
+        }
+
+        // 6. Próxima Audiencia (Principal)
+        String fechaAudAnt = actual.getProximaAudiencia() != null ? actual.getProximaAudiencia().toString() : "Sin fecha";
+        String fechaAudNva = dto.getProximaAudiencia() != null ? dto.getProximaAudiencia().toString() : "Sin fecha";
+        if (!fechaAudAnt.equals(fechaAudNva)) {
+            cambios.append(String.format("• Próxima Audiencia: [%s] → [%s]\n", fechaAudAnt, fechaAudNva));
+            actual.setProximaAudiencia(dto.getProximaAudiencia());
+            huboCambios = true;
+        }
+
+        // 7. Estatus / Recursos Amparo (Campo amparo en la entidad)
+        if (debioCambiarTexto(actual.getAmparo(), dto.getAmparo())) {
+            cambios.append(String.format("•Recursos Amparo: [%s] → [%s]\n", formatearNulo(actual.getAmparo()), dto.getAmparo()));
+            actual.setAmparo(dto.getAmparo());
+            huboCambios = true;
+        }
+
+        // 8. Tribunal Colegiado (T.C.C.)
+        Long idTribAnt = actual.getAmparoTribunal() != null ? actual.getAmparoTribunal().getId() : null;
+        if (dto.getAmparoTribunalId() != null && !dto.getAmparoTribunalId().equals(idTribAnt)) {
+            CatTribunal nuevoTrib = tribunalRepository.findById(dto.getAmparoTribunalId()).orElse(null);
+            if (nuevoTrib != null) {
+                String nombreAnt = actual.getAmparoTribunal() != null ? actual.getAmparoTribunal().getNombreCompleto() : "Ninguno";
+                cambios.append(String.format("• Tribunal: [%s] → [%s]\n", nombreAnt, nuevoTrib.getNombreCompleto()));
+                actual.setAmparoTribunal(nuevoTrib);
+                huboCambios = true;
+            }
+        }
+
+        // --- GUARDADO ---
+        if (huboCambios) {
+            Expediente guardado = expedienteRepository.save(actual);
+            MovimientoExpediente mov = new MovimientoExpediente();
+            mov.setExpediente(guardado);
+            mov.setUsuario(editor);
+            mov.setDescripcion(cambios.toString());
+            movimientoRepository.save(mov);
+            return guardado;
+        }
+
+        return actual;
+    }
+
+    // Funciones auxiliares para limpiar el código
+    private boolean debioCambiarTexto(String actual, String nuevo) {
+        if (nuevo == null) return false;
+        String valActual = (actual == null) ? "" : actual.trim();
+        return !valActual.equals(nuevo.trim());
+    }
+
+    private String formatearNulo(String texto) {
+        return (texto == null || texto.isBlank()) ? "Vacío" : texto;
     }
 }

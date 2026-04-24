@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.time.Instant;
 
 @Entity
@@ -17,6 +19,7 @@ public class MovimientoExpediente {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expediente_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "cliente", "empresa", "junta"})
     private Expediente expediente;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -24,6 +27,7 @@ public class MovimientoExpediente {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password"})
     private Usuario usuario;
 
     @CreationTimestamp

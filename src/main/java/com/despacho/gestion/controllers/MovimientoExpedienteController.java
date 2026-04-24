@@ -11,6 +11,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
+
 
 @RestController
 @RequestMapping("/api/expedientes/{expedienteId}/movimientos")
@@ -22,6 +24,7 @@ public class MovimientoExpedienteController {
     @Autowired private UsuarioRepository usuarioRepository;
 
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAll(@PathVariable Long expedienteId,
                                     @RequestParam(defaultValue = "0") int page,
                                     @RequestParam(defaultValue = "20") int size) {
